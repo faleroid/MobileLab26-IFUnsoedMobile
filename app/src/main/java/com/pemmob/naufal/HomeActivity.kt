@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -17,6 +18,7 @@ import com.pemmob.naufal.ui.screen.DaftarProdukScreen
 import com.pemmob.naufal.ui.screen.DetailProductScreen
 import com.pemmob.naufal.ui.screen.HubungiKamiScreen
 import com.pemmob.naufal.ui.theme.NaufalTheme
+import com.pemmob.naufal.ui.viewmodel.ProductViewModel
 
 class HomeActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -29,6 +31,7 @@ class HomeActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     val navController = rememberNavController()
+                    val productViewModel: ProductViewModel = viewModel()
 
                     NavHost(
                         navController = navController,
@@ -36,7 +39,7 @@ class HomeActivity : ComponentActivity() {
                     ) {
                         // 1. Rute Halaman Utama (Daftar Produk)
                         composable(route = "daftar_produk") {
-                            DaftarProdukScreen(navController = navController)
+                            DaftarProdukScreen(navController = navController, viewModel = productViewModel)
                         }
 
                         // 2. Rute Halaman Detail Produk (Menerima Parameter ID)
@@ -49,7 +52,8 @@ class HomeActivity : ComponentActivity() {
 
                             DetailProductScreen(
                                 productId = productId,
-                                navController = navController
+                                navController = navController,
+                                viewModel = productViewModel
                             )
                         }
 

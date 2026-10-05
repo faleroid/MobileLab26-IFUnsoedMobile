@@ -32,9 +32,10 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import kotlinx.coroutines.delay
 import com.pemmob.naufal.R
-import com.pemmob.naufal.data.dummy.DummyData
 import com.pemmob.naufal.data.model.Category
 import com.pemmob.naufal.data.model.Product
+import com.pemmob.naufal.ui.viewmodel.ProductUiState
+import com.pemmob.naufal.ui.viewmodel.ProductViewModel
 
 @Composable
 fun ProductItemCard(product: Product, onClick: () -> Unit) {
@@ -121,48 +122,74 @@ fun CategoryItem(category: Category, isSelected: Boolean, onClick: () -> Unit) {
     }
 }
 
-// 1. Modifikasi DaftarProdukScreen untuk Manajemen State dan LaunchedEffect
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DaftarProdukScreen(navController: NavController? = null) {
+fun DaftarProdukScreen(navController: NavController? = null, viewModel: ProductViewModel) {
     val context = LocalContext.current
-    var selectedCategoryId by rememberSaveable { mutableStateOf(DummyData.categories.firstOrNull()?.id) }
+    var selectedCategoryId by rememberSaveable { mutableStateOf<Int?>(null)}
     var searchQuery by rememberSaveable { mutableStateOf(value = "") }
     var isLoading by remember { mutableStateOf(value = false) }
     var filteredProducts by remember { mutableStateOf(value = emptyList<Product>()) }
+    val uiState by viewModel.uiState.collectAsState()
 
-    // Simulasi loading 1 detik dan filter data
-    LaunchedEffect(key1 = selectedCategoryId, key2 = searchQuery) {
-        isLoading = true
-        delay(timeMillis = 1000)
-
-        val filteredByCategory = if (selectedCategoryId != null) {
-            DummyData.products.filter { it.category_id == selectedCategoryId }
-        } else DummyData.products
-
-        filteredProducts = if (searchQuery.isBlank()) {
-            filteredByCategory
-        } else {
-            filteredByCategory.filter { it.name.contains(other = searchQuery, ignoreCase = true) }
+    when (val state = uiState) {
+        is ProductUiState.Loading -> {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
+            }
         }
-        isLoading = false
+
+        is ProductUiState.Error -> {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    "Error: ${state.message}",
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+        }
+
+        is ProductUiState.Success -> {
+            if (selectedCategoryId == null && state.categories.isNotEmpty()) {
+                selectedCategoryId = state.categories.first().id
+            }
+
+            val filteredByCategory = if (selectedCategoryId != null) {
+                state.products.filter { it.category_id == selectedCategoryId }
+            } else {
+                state.products
+            }
+
+            val filteredProducts = if (searchQuery.isBlank()) {
+                filteredByCategory
+            } else {
+                filteredByCategory.filter {
+                    it.name.contains(searchQuery, ignoreCase = true)
+                }
+            }
+
+            StatelessDaftarProduct(
+                categories = state.categories,
+                selectedCategoryId = selectedCategoryId,
+                onCategorySelected = { selectedCategoryId = it },
+                searchQuery = searchQuery,
+                onSearchQueryChange = { searchQuery = it },
+                isLoading = isLoading,
+                products = filteredProducts,
+                onProductClick = { product ->
+                    navController?.navigate(route = "detail/${product.id}")
+                },
+                onContactUsClick = {
+                    navController?.navigate(route = "hubungi_kami")
+                }
+            )
+        }
     }
-
-    StatelessDaftarProduct(
-        categories = DummyData.categories,
-        selectedCategoryId = selectedCategoryId,
-        onCategorySelected = { selectedCategoryId = it },
-        searchQuery = searchQuery,
-        onSearchQueryChange = { searchQuery = it },
-        isLoading = isLoading,
-        products = filteredProducts,
-        onProductClick = { product ->
-            navController?.navigate(route = "detail/${product.id}")
-        },
-        onContactUsClick = {
-            navController?.navigate(route = "hubungi_kami")
-        }
-    )
 }
 
 // 2. Pembuatan StatelessDaftarProduct (State Hoisting)
@@ -300,14 +327,14 @@ fun StatelessDaftarProduct(
     }
 }
 
-@Preview(showBackground = true)
-@Composable
-fun PreviewProductLight() {
-    DaftarProdukScreen()
-}
-
-@Preview(showBackground = true, uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES)
-@Composable
-fun PreviewProductDark() {
-    DaftarProdukScreen()
-}
+//@Preview(showBackground = true)
+//@Composable
+//fun PreviewProductLight() {
+//    DaftarProdukScreen()
+//}
+//
+//@Preview(showBackground = true, uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES)
+//@Composable
+//fun PreviewProductDark() {
+//    DaftarProdukScreen()
+//}
